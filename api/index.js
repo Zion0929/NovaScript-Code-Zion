@@ -34,7 +34,12 @@ export default async function handler(req) {
     const data = await response.json();
     const generatedCode = data.choices[0].message.content;
     
-    return NextResponse.json({ code: generatedCode });
+    return new NextResponse(JSON.stringify({ code: generatedCode }), {
+  headers: {
+    'Content-Type': 'application/json',
+    'Access-Control-Allow-Origin': '*'
+  }
+});
   } catch (error) {
     console.error('Error:', error);
     return NextResponse.json(
