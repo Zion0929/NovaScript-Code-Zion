@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AI程序生成器</title>
+    <style>
+        :root {
+            --bg-color: #f8f4e8;
+            --card-color: #fff9f0;
+            --primary-color: #7a7a72;
+            --accent-color: #d4b483;
+            --text-color: #33332d;
+            --header-height: 50px;
+            --tabbar-height: 60px;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+            --transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 0;
+            line-height: 1.5;
+            overflow-x: hidden;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 顶部标题栏 */
+        .app-header {
+            height: var(--header-height);
+            background-color: var(--card-color);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            box-shadow: var(--shadow-sm);
+            z-index: 10;
+            transition: var(--transition);
+        }
+        
+        .app-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: var(--primary-color);
+            transition: var(--transition);
+        }
+        
+        /* 主内容区域 */
+        .app-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-bottom: var(--tabbar-height);
+            -webkit-overflow-scrolling: touch;
+            transition: var(--transition);
+        }
+        
+        /* 底部标签栏 */
+        .app-tabbar {
+            height: var(--tabbar-height);
+            background-color: var(--card-color);
+            display: flex;
+            border-top: 1px solid rgba(0,0,0,0.08);
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            z-index: 10;
+            transition: var(--transition);
+        }
+        
+        .tabbar-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--primary-color);
+            text-decoration: none;
+            transition: var(--transition);
+        }
+        
+        .tabbar-item.active {
+            color: var(--accent-color);
+            transform: translateY(-2px);
+        }
+        
+        .tabbar-icon {
+            font-size: 22px;
+            margin-bottom: 3px;
+            transition: var(--transition);
+        }
+        
+        /* 卡片样式 */
+        .card {
+            background-color: var(--card-color);
+            border-radius: 16px;
+            padding: 20px;
+            margin: 15px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+            transform: translateY(0);
+        }
+        
+        .card:hover {
+            box-shadow: var(--shadow-md);
+            transform: translateY(-2px);
+        }
+        
+        /* 输入区域 */
+        .prompt-input {
+            width: 100%;
+            min-height: 120px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px;
+            padding: 15px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-size: 15px;
+            background-color: white;
+            resize: none;
+            transition: var(--transition);
+            margin-bottom: 15px;
+        }
+        
+        .prompt-input:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(212, 180, 131, 0.2);
+        }
+        
+        /* 代码生成区域 */
+        .code-generation {
+            margin-top: 20px;
+            border-radius: 12px;
+            overflow: hidden;
+            background-color: white;
+            border: 1px solid rgba(0,0,0,0.1);
+            display: none;
+        }
+        
+        .code-header {
+            padding: 12px 15px;
+            background-color: var(--card-color);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            font-weight: 500;
+            color: var(--primary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .code-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .code-action-btn {
+            background: none;
+            border: none;
+            color: var(--primary-color);
+            font-size: 14px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 6px;
+            transition: var(--transition);
+        }
+        
+        .code-action-btn:hover {
+            background-color: rgba(0,0,0,0.05);
+            color: var(--accent-color);
+        }
+        
+        .preview-save-button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: var(--transition);
+            margin: 10px 0;
+        }
+        
+        .preview-save-button:hover {
+            background-color: #c09a6b;
+            transform: translateY(-1px);
+        }
+        
+        .code-content {
+            height: 300px;
+            overflow-y: auto;
+            padding: 15px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            background-color: #fcfaf6;
+        }
+        
+        .progress-container {
+            height: 4px;
+            background-color: rgba(0,0,0,0.05);
+            width: 100%;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background-color: var(--accent-color);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        /* 按钮样式 */
+        .button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: var(--transition);
+            height: 44px;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .button:hover, .button:active {
+            background-color: #c4a473;
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .button .icon {
+            margin-right: 8px;
+            transition: var(--transition);
+        }
+        
+        .button-secondary {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+        
+        .button-secondary:hover, .button-secondary:active {
+            background-color: #f5f5f0;
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+        }
+        
+        /* 加载状态 */
+        .loading {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+            margin-right: 8px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* 模态框 */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(5px);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal.show {
+            opacity: 1;
+        }
+        
+        .modal-content {
+            background-color: var(--card-color);
+            padding: 25px;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 400px;
+            transform: translateY(20px);
+            transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .modal.show .modal-content {
+            transform: translateY(0);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 500;
+            color: var(--primary-color);
+        }
+        
+        .close-button {
+            font-size: 24px;
+            cursor: pointer;
+            color: var(--primary-color);
+            transition: var(--transition);
+        }
+        
+        .close-button:hover {
+            color: var(--accent-color);
+            transform: rotate(90deg);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 10px;
+            font-size: 15px;
+            color: var(--primary-color);
+        }
+        
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 15px;
+            border: 1px solid rgba(0,0,0,0.1);
+            border-radius: 12px;
+            font-size: 15px;
+            transition: var(--transition);
+        }
+        
+        .form-group input:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: var(--accent-color);
+            box-shadow: 0 0 0 2px rgba(212, 180, 131, 0.2);
+        }
+        
+        /* 预览全屏视图 */
+        .preview-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: white;
+            z-index: 200;
+            display: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .preview-container.show {
+            opacity: 1;
+            display: block;
+        }
+        
+        .preview-header {
+            height: var(--header-height);
+            background-color: var(--card-color);
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .preview-back {
+            font-size: 22px;
+            margin-right: 15px;
+            cursor: pointer;
+            transition: var(--transition);
+        }
+        
+        .preview-back:hover {
+            color: var(--accent-color);
+            transform: translateX(-3px);
+        }
+        
+        .preview-title {
+            font-size: 17px;
+            font-weight: 500;
+        }
+        
+        #preview-frame {
+            width: 100%;
+            height: calc(100% - var(--header-height));
+            border: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        #preview-frame.loaded {
+            opacity: 1;
+        }
+        
+        /* 空状态 */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 50px 20px;
+            text-align: center;
+            color: var(--primary-color);
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease;
+        }
+        
+        .empty-state.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .empty-icon {
+            font-size: 40px;
+            margin-bottom: 20px;
+            color: var(--accent-color);
+            transition: var(--transition);
+        }
+        
+        /* 标签页内容 */
+        .tab-content {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+            transition: all 0.3s ease;
+        }
+        
+        .tab-content.active {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        /* 应用桌面样式 */
+        .app-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            padding: 15px;
+        }
+        
+        .app-icon {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-decoration: none;
+            color: var(--text-color);
+            transition: var(--transition);
+            padding: 10px;
+            border-radius: 12px;
+        }
+        
+        .app-icon:hover {
+            background-color: rgba(0,0,0,0.05);
+        }
+        
+        .app-icon-image {
+            width: 60px;
+            height: 60px;
+            border-radius: 16px;
+            background-color: var(--accent-color);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 8px;
+            box-shadow: var(--shadow-sm);
+            transition: var(--transition);
+        }
+        
+        .app-icon:hover .app-icon-image {
+            transform: scale(1.05);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .app-icon-name {
+            font-size: 12px;
+            text-align: center;
+            word-break: break-word;
+            max-width: 80px;
+            line-height: 1.3;
+        }
+        
+        /* 图标选择器 */
+        .icon-selector {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .icon-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            cursor: pointer;
+            transition: var(--transition);
+            background-color: rgba(0,0,0,0.05);
+        }
+        
+        .icon-option.selected {
+            background-color: var(--accent-color);
+            color: white;
+        }
+        
+        /* 响应式调整 */
+        @media (min-width: 768px) {
+            .app-grid {
+                grid-template-columns: repeat(5, 1fr);
+            }
+        }
+        
+        /* 波纹效果 */
+        .ripple {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .ripple:after {
+            content: "";
+            display: block;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+            background-image: radial-gradient(circle, rgba(255,255,255,0.4) 10%, transparent 10.01%);
+            background-repeat: no-repeat;
+            background-position: 50%;
+            transform: scale(10,10);
+            opacity: 0;
+            transition: transform .5s, opacity 1s;
+        }
+        
+        .ripple:active:after {
+            transform: scale(0,0);
+            opacity: 0.3;
+            transition: 0s;
+        }
+        
+        /* 代码生成状态指示器 */
+        .generation-status {
+            padding: 10px 15px;
+            background-color: rgba(212, 180, 131, 0.1);
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            color: var(--primary-color);
+        }
+        
+        .status-icon {
+            margin-right: 10px;
+            font-size: 18px;
+        }
+        
+        /* 代码高亮 */
+        .token.comment,
+        .token.prolog,
+        .token.doctype,
+        .token.cdata {
+            color: #999988;
+            font-style: italic;
+        }
+        
+        .token.namespace {
+            opacity: .7;
+        }
+        
+        .token.string,
+        .token.attr-value {
+            color: #e3116c;
+        }
+        
+        .token.punctuation,
+        .token.operator {
+            color: #393A34;
+        }
+        
+        .token.entity,
+        .token.url,
+        .token.symbol,
+        .token.number,
+        .token.boolean,
+        .token.variable,
+        .token.constant,
+        .token.property,
+        .token.regex,
+        .token.inserted {
+            color: #36acaa;
+        }
+        
+        .token.atrule,
+        .token.keyword,
+        .token.attr-name,
+        .language-autohotkey .token.selector {
+            color: #00a4db;
+        }
+        
+        .token.function,
+        .token.deleted,
+        .language-autohotkey .token.tag {
+            color: #9a050f;
+        }
+        
+        .token.tag,
+        .token.selector,
+        .language-autohotkey .token.keyword {
+            color: #00009f;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部标题栏 -->
+    <header class="app-header">
+        <h1 class="app-title">AI程序生成器</h1>
+    </header>
+    
+    <!-- 主内容区域 -->
+    <main class="app-content">
+        <!-- AI生成标签页 -->
+        <div id="ai-tab" class="tab-content active">
+            <div class="card">
+                <h2>AI生成HTML程序</h2>
+                <p>描述你想要的程序功能，AI将为你生成HTML代码</p>
+                
+                <textarea id="prompt-input" class="prompt-input" placeholder="请详细描述你想要的应用程序功能，例如：创建一个红色按钮，点击后显示'Hello World'弹窗..."></textarea>
+                
+                <div style="display: flex; flex-wrap: wrap;">
+                    <button class="button ripple" onclick="generateCode()" id="generate-btn">
+                        <span class="icon"></span> 生成代码
+                    </button>
+                    <button class="button button-secondary ripple" onclick="clearPrompt()">
+                        <span class="icon"></span> 清空输入
+                    </button>
+                </div>
+                
+                <script>
+                    async function generateCode() {
+                        const prompt = document.getElementById('prompt-input').value;
+                        if (!prompt.trim()) {
+                            alert('请输入生成提示');
+                            return;
+                        }
+                        
+                        const generateBtn = document.getElementById('generate-btn');
+                        generateBtn.innerHTML = '<span class="loading"></span> 生成中...';
+                        generateBtn.disabled = true;
+                        
+                        try {
+                            const response = await fetch('/api', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ prompt })
+                            });
+                            
+                            if (!response.ok) throw new Error('请求失败');
+                            
+                            const { code } = await response.json();
+                            document.getElementById('code-content').innerHTML = `<pre>${code}</pre>`;
+                            updateStatus('代码生成完成', '✅');
+                        } catch (error) {
+                            console.error(error);
+                            updateStatus('生成失败: ' + error.message, '❌');
+                        } finally {
+                            generateBtn.innerHTML = '<span class="icon"></span> 生成代码';
+                            generateBtn.disabled = false;
+                        }
+                    }
+                    
+                    function clearPrompt() {
+                        document.getElementById('prompt-input').value = '';
+                    }
+                </script>
+                
+                <!-- 代码生成区域 -->
+                <div id="code-generation" class="code-generation">
+                    <div class="generation-status" id="generation-status">
+                        <span class="status-icon">⚙️</span>
+                        <span id="status-text">准备生成代码...</span>
+                    </div>
+                    <div class="code-header">
+                        <span>生成的代码</span>
+                        <div class="code-actions">
+                            <button class="code-action-btn" onclick="runCode()">运行</button>
+                            <button class="code-action-btn" onclick="saveAsApp()">保存</button>
+                        </div>
+                    </div>
+                    <div id="code-content" class="code-content"></div>
+                    <div class="progress-container">
+                        <div id="progress-bar" class="progress-bar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 应用桌面标签页 -->
+        <div id="desktop-tab" class="tab-content">
+            <div class="card">
+                <h2>我的应用</h2>
+                <div class="app-grid" id="app-desktop">
+                    <!-- 应用图标将在这里动态生成 -->
+                </div>
+                <div id="empty-state" class="empty-state">
+                    <div class="empty-icon">+</div>
+                    <h3>还没有应用</h3>
+                    <p>使用AI生成并保存你的第一个HTML应用</p>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- 底部标签栏 -->
+    <nav class="app-tabbar">
+        <a href="#" class="tabbar-item active ripple" onclick="switchTab('ai')">
+            <div class="tabbar-icon">AI</div>
+            <div>生成</div>
+        </a>
+        <a href="#" class="tabbar-item ripple" onclick="switchTab('desktop')">
+            <div class="tabbar-icon">应用</div>
+            <div>我的</div>
+        </a>
+    </nav>
+    
+    <!-- 保存应用的模态框 -->
+    <div id="save-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">保存为应用</h3>
+                <span class="close-button" onclick="closeModal('save-modal')">&times;</span>
+            </div>
+            <div class="form-group">
+                <label for="app-name">应用名称</label>
+                <input type="text" id="app-name" placeholder="输入应用名称">
+            </div>
+            <div class="form-group">
+                <label>选择图标</label>
+                <div class="icon-selector" id="icon-selector">
+                    <div class="icon-option" onclick="selectIcon(this, '📱')">📱</div>
+                    <div class="icon-option" onclick="selectIcon(this, '🔧')">🔧</div>
+                    <div class="icon-option" onclick="selectIcon(this, '🎮')">🎮</div>
+                    <div class="icon-option" onclick="selectIcon(this, '📊')">📊</div>
+                    <div class="icon-option" onclick="selectIcon(this, '🎨')">🎨</div>
+                    <div class="icon-option" onclick="selectIcon(this, '📝')">📝</div>
+                    <div class="icon-option" onclick="selectIcon(this, '🔍')">🔍</div>
+                    <div class="icon-option" onclick="selectIcon(this, '📅')">📅</div>
+                    <div class="icon-option" onclick="selectIcon(this, '💰')">💰</div>
+                    <div class="icon-option" onclick="selectIcon(this, '🎵')">🎵</div>
+                </div>
+            </div>
+            <button class="button ripple" onclick="saveApp()" style="width: 100%;">
+                <span class="icon"></span> 保存应用
+            </button>
+        </div>
+    </div>
+    
+    <!-- 预览全屏视图 -->
+    <div id="preview-container" class="preview-container">
+        <div class="preview-header">
+            <div class="preview-back" onclick="closePreview()">←</div>
+            <div class="preview-title">代码预览</div>
+            <div class="preview-name-input">
+                <input type="text" id="preview-app-name" placeholder="输入应用名称">
+            </div>
+            <button class="preview-save-button" onclick="saveApp()" style="margin-left: auto;">保存应用</button>
+        </div>
+        <iframe id="preview-frame"></iframe>
+    </div>
+    
+    <script>
+        // 初始化本地存储
+        if (!localStorage.getItem('htmlApps')) {
+            localStorage.setItem('htmlApps', JSON.stringify([]));
+        }
+        
+        // 当前生成的代码
+        let currentGeneratedCode = '';
+        let selectedIcon = '📱';
+        
+        // 加载保存的应用
+        window.onload = function() {
+            loadApps();
+            
+            // 显示空状态动画
+            setTimeout(() => {
+                document.getElementById('empty-state').classList.add('show');
+            }, 300);
+            
+            // 阻止底部导航栏点击时的页面跳动
+            document.querySelectorAll('.tabbar-item').forEach(item => {
+                item.addEventListener('click', function(e) {
+                    e.preventDefault();
+                });
+            });
+        };
+        
+        // 切换标签页
+        function switchTab(tabName) {
+            // 更新标签栏状态
+            document.querySelectorAll('.tabbar-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            document.querySelector(`.tabbar-item[onclick="switchTab('${tabName}')"]`).classList.add('active');
+            
+            // 更新内容区域
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            // 滚动到顶部
+            document.querySelector('.app-content').scrollTo(0, 0);
+        }
+        
+        // 生成代码
+        async function generateCode() {
+            const prompt = document.getElementById('prompt-input').value;
+            if (!prompt.trim()) {
+                alert('请输入生成提示');
+                return;
+            }
+            
+            const generateBtn = document.getElementById('generate-btn');
+            generateBtn.innerHTML = '<span class="loading"></span> 生成中...';
+            generateBtn.disabled = true;
+            
+            // 显示代码生成区域
+            const codeGeneration = document.getElementById('code-generation');
+            codeGeneration.style.display = 'block';
+            
+            // 清空之前的内容
+            const codeContent = document.getElementById('code-content');
+            codeContent.innerHTML = '';
+            
+            // 重置进度条
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = '0%';
+            
+            // 更新状态
+            updateStatus('正在连接AI服务器...', '⚡');
+            
+            try {
+                const response = await fetch('/api', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                if (!response.ok) throw new Error('请求失败');
+                
+                const { code } = await response.json();
+                currentGeneratedCode = code;
+                
+                // 模拟逐行显示代码
+                const lines = mockCode.split('\n');
+                let currentLine = 0;
+                const totalLines = lines.length;
+                
+                const codeInterval = setInterval(() => {
+                    if (currentLine < totalLines) {
+                        const line = lines[currentLine];
+                        codeContent.innerHTML += highlightCode(line) + '\n';
+                        codeContent.scrollTop = codeContent.scrollHeight;
+                        currentLine++;
+                        
+                        // 更新进度条
+                        const progress = Math.min(100, (currentLine / totalLines) * 100);
+                        progressBar.style.width = `${progress}%`;
+                        
+                        // 更新状态
+                        updateStatus(`正在生成代码 (${currentLine}/${totalLines})...`, '⚙️');
+                    } else {
+                        clearInterval(codeInterval);
+                        generateBtn.innerHTML = '<span class="icon"></span> 生成完成';
+                        generateBtn.disabled = false;
+                        
+                        updateStatus('代码生成完成! 自动运行中...', '✅');
+                        
+                        // 自动运行代码
+                        setTimeout(() => {
+                            runCode();
+                        }, 800);
+                    }
+                }, 50); // 每50毫秒显示一行代码
+            } catch (error) {
+                console.error('生成代码出错:', error);
+                updateStatus('生成代码时出错: ' + error.message, '❌');
+                generateBtn.innerHTML = '<span class="icon"></span> 重新生成';
+                generateBtn.disabled = false;
+            }
+        }
+        
+        // 生成模拟代码
+        function generateMockCode(prompt) {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    const code = `<!DOCTYPE html>
+<html>
+<head>
+    <title>${prompt.substring(0, 20)}</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            text-align: center;
+            padding: 30px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #d4b483;
+            margin-bottom: 20px;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            background-color: #d4b483;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+        button:hover {
+            background-color: #c4a473;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>${prompt.substring(0, 30)}</h1>
+        <button onclick="alert('功能已实现!')">点击这里</button>
+    </div>
+</body>
+</html>`;
+                    resolve(code);
+                }, 500);
+            });
+        }
+        
+        // 更新生成状态
+        function updateStatus(text, icon) {
+            const statusElement = document.getElementById('generation-status');
+            document.getElementById('status-text').textContent = text;
+            statusElement.querySelector('.status-icon').textContent = icon;
+        }
+        
+        // 简单的代码高亮
+        function highlightCode(line) {
+            // 处理HTML标签
+            line = line.replace(/&lt;(\/?)(\w+)([^&]*)&gt;/g, '<span class="token tag">&lt;$1$2$3&gt;</span>');
+            
+            // 处理属性
+            line = line.replace(/(\w+)=/g, '<span class="token attr-name">$1</span>=');
+            
+            // 处理属性值
+            line = line.replace(/"[^"]*"/g, '<span class="token attr-value">$&</span>');
+            
+            // 处理CSS属性
+            line = line.replace(/(\w+-?\w+):/g, '<span class="token property">$1</span>:');
+            
+            // 处理CSS值
+            line = line.replace(/#[0-9a-fA-F]{3,6}|rgba?\([^)]+\)|\d+(px|em|rem|%|vw|vh)/g, '<span class="token number">$&</span>');
+            
+            // 处理注释
+            line = line.replace(/<!--.*?-->|\/\*.*?\*\//g, '<span class="token comment">$&</span>');
+            
+            return line;
+        }
+        
+        // 清空提示
+        function clearPrompt() {
+            document.getElementById('prompt-input').value = '';
+            document.getElementById('code-generation').style.display = 'none';
+            currentGeneratedCode = '';
+            updateStatus('准备生成代码...', '⚙️');
+        }
+        
+        // 运行代码
+        function runCode() {
+            if (!currentGeneratedCode.trim()) {
+                alert('请先生成代码');
+                return;
+            }
+            
+            const previewFrame = document.getElementById('preview-frame');
+            const previewContainer = document.getElementById('preview-container');
+            
+            previewFrame.onload = function() {
+                previewFrame.classList.add('loaded');
+            };
+            
+            const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+            
+            previewDoc.open();
+            previewDoc.write(currentGeneratedCode);
+            previewDoc.close();
+            
+            previewContainer.style.display = 'block';
+            setTimeout(() => {
+                previewContainer.classList.add('show');
+            }, 10);
+        }
+        
+        // 关闭预览
+        function closePreview() {
+            const previewContainer = document.getElementById('preview-container');
+            previewContainer.classList.remove('show');
+            setTimeout(() => {
+                previewContainer.style.display = 'none';
+                document.getElementById('preview-frame').classList.remove('loaded');
+            }, 300);
+        }
+        
+        // 打开保存模态框
+        function saveAsApp() {
+            if (!currentGeneratedCode.trim()) {
+                alert('请先生成代码');
+                return;
+            }
+            
+            const modal = document.getElementById('save-modal');
+            modal.style.display = 'flex';
+            setTimeout(() => {
+                modal.classList.add('show');
+            }, 10);
+        }
+        
+        // 选择图标
+        function selectIcon(element, icon) {
+            document.querySelectorAll('.icon-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            element.classList.add('selected');
+            selectedIcon = icon;
+        }
+        
+        // 关闭模态框
+        function closeModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.remove('show');
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 300);
+        }
+        
+        // 保存应用
+        function saveApp() {
+            const appName = document.getElementById('preview-app-name').value || document.getElementById('app-name').value;
+            if (!appName) {
+                alert('请输入应用名称');
+                return;
+            }
+            const appName = document.getElementById('preview-app-name').value || document.getElementById('app-name').value;
+            
+            if (!appName.trim()) {
+                alert('请输入应用名称');
+                return;
+            }
+            
+            if (!currentGeneratedCode.trim()) {
+                alert('没有可保存的代码');
+                return;
+            }
+            
+            const apps = JSON.parse(localStorage.getItem('htmlApps'));
+            const newApp = {
+                id: Date.now(),
+                name: appName,
+                icon: selectedIcon,
+                code: currentGeneratedCode,
+                createdAt: new Date().toISOString()
+            };
+            
+            apps.push(newApp);
+            localStorage.setItem('htmlApps', JSON.stringify(apps));
+            
+            closeModal('save-modal');
+            document.getElementById('app-name').value = '';
+            loadApps();
+            switchTab('desktop');
+        }
+        
+        // 加载所有应用
+        function loadApps() {
+            const apps = JSON.parse(localStorage.getItem('htmlApps'));
+            const desktop = document.getElementById('app-desktop');
+            const emptyState = document.getElementById('empty-state');
+            
+            desktop.innerHTML = '';
+            
+            if (apps.length === 0) {
+                emptyState.style.display = 'flex';
+                setTimeout(() => {
+                    emptyState.classList.add('show');
+                }, 10);
+                return;
+            }
+            
+            emptyState.classList.remove('show');
+            setTimeout(() => {
+                emptyState.style.display = 'none';
+            }, 300);
+            
+            apps.forEach(app => {
+                const appIcon = document.createElement('div');
+                appIcon.className = 'app-icon ripple';
+                appIcon.onclick = (e) => {
+                    e.preventDefault();
+                    runSavedApp(app.id, app.name);
+                };
+                
+                appIcon.innerHTML = `
+                    <div class="app-icon-image" style="background-color: ${getRandomColor()}">${app.icon || app.name.charAt(0).toUpperCase()}</div>
+                    <div class="app-icon-name">${app.name}</div>
+                `;
+                
+                desktop.appendChild(appIcon);
+            });
+        }
+        
+        // 生成随机颜色
+        function getRandomColor() {
+            const colors = [
+                '#d4b483', '#7a7a72', '#a8c3bc', 
+                '#e8b9ab', '#c6c8ca', '#f3d7ca',
+                '#a2b38b', '#e6ba95', '#9cb4cc'
+            ];
+            return colors[Math.floor(Math.random() * colors.length)];
+        }
+        
+        // 运行已保存的应用
+        function runSavedApp(appId, appName) {
+            const apps = JSON.parse(localStorage.getItem('htmlApps'));
+            const app = apps.find(a => a.id === appId);
+            
+            if (app) {
+                const previewFrame = document.getElementById('preview-frame');
+                const previewContainer = document.getElementById('preview-container');
+                const previewDoc = previewFrame.contentDocument || previewFrame.contentWindow.document;
+                
+                previewFrame.onload = function() {
+                    previewFrame.classList.add('loaded');
+                };
+                
+                previewDoc.open();
+                previewDoc.write(app.code);
+                previewDoc.close();
+                
+                document.querySelector('.preview-title').textContent = app.name;
+                previewContainer.style.display = 'block';
+                setTimeout(() => {
+                    previewContainer.classList.add('show');
+                }, 10);
+            }
+        }
+    </script>
+</body>
+</html>
